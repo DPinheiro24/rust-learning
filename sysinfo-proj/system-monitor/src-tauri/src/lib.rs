@@ -66,8 +66,13 @@ fn get_sys_info() -> Result<SysInfo, String> {
     
     let mut rng = rand::rng();
 
-    for _cpu in sys.cpus() {
-        let fake_cpu: i32 = rng.random_range(1..=100);
+    for cpu in sys.cpus() {
+        let real = cpu.cpu_usage(); // will be 0 on WSL
+        let fake_cpu: i32 = if real == 0.0 {
+            rng.random_range(1..=100)
+        } else {
+            real as i32
+        };
         cpu_usage.insert(format!("CPU {}", count), fake_cpu);
         count += 1;
     }
