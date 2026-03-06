@@ -1,0 +1,43 @@
+name: Build System Monitor
+
+on:
+  push:
+    branches:
+      - rust-learning
+    paths:
+      - 'sysinfo-proj/system-monitor/**'  # only triggers when this project changes
+  workflow_dispatch: # lets you trigger it manually from GitHub UI
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        working-directory: sysinfo-proj/system-monitor
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install frontend dependencies
+        run: npm install
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: system-monitor-windows
+          path: sysinfo-proj/system-monitor/src-tauri/target/release/bundle/nsis/*.exe
