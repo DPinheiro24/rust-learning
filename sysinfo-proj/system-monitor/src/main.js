@@ -48,7 +48,10 @@ window.addEventListener("DOMContentLoaded", async () => {
   });
 
   document.getElementById("pause-btn").addEventListener("click", async () => {
-    const message = await invoke("switch_pause");
-    showNotification(message);
+      const message = await invoke("switch_pause");
+      showNotification(message);
+      
+      const btn = document.getElementById("pause-btn");
+      btn.textContent = btn.textContent === "Pause" ? "Resume" : "Pause";
   });
 });
