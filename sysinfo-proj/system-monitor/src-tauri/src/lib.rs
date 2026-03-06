@@ -101,7 +101,7 @@ fn start_polling(app: AppHandle, state: Arc<Mutex<AppState>>) {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .manage(Arc::new(Mutex::new(AppState { is_paused: true })))
+        .manage(Arc::new(Mutex::new(AppState { is_paused: false })))
         .setup(|app| {
             let state = app.state::<Arc<Mutex<AppState>>>().inner().clone();
             start_polling(app.handle().clone(), state);
