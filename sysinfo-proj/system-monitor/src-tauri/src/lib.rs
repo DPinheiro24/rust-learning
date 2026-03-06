@@ -24,11 +24,6 @@ struct AppState {
 }
 
 #[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
-
-#[tauri::command]
 fn switch_pause(state: State<Arc<Mutex<AppState>>>) -> Result<String, String> {
 
     let mut stats = state.lock().unwrap();
@@ -112,7 +107,7 @@ pub fn run() {
             start_polling(app.handle().clone(), state);
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![greet, get_sys_info, switch_pause])
+        .invoke_handler(tauri::generate_handler![get_sys_info, switch_pause])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
