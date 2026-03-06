@@ -124,6 +124,44 @@ h1 {
   text-align: right;
 }
 
+.pause-btn {
+  margin-bottom: 1.5rem;
+  padding: 0.45rem 1.2rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  background: #6366f1;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.pause-btn:hover {
+  background: #4f46e5;
+}
+
+.notification {
+  position: fixed;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  background: #1a1a2e;
+  color: #f1f5f9;
+  font-size: 0.8rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.25s, transform 0.25s;
+  pointer-events: none;
+}
+
+.notification.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     color: #f1f5f9;

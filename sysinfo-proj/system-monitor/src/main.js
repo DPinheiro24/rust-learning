@@ -1,10 +1,7 @@
 const { invoke } = window.__TAURI__.core;
+const { listen } = window.__TAURI__.event;
 
-async function getInfo() {
-  const data = await invoke("get_sys_info");
-
-  console.log(data);
-
+function updateUI(data) {
   const MB = 1024 * 1024;
   const totalMB = Math.round(data.total_memory / MB);
   const usedMB = Math.round(data.used_memory / MB);
@@ -34,6 +31,24 @@ async function getInfo() {
     .join("");
 }
 
-window.addEventListener("DOMContentLoaded", () => {
-  getInfo();
+let notificationTimer = null;
+
+function showNotification(text) {
+  const el = document.getElementById("notification");
+  el.textContent = text;
+  el.classList.add("visible");
+
+  clearTimeout(notificationTimer);
+  notificationTimer = setTimeout(() => el.classList.remove("visible"), 3000);
+}
+
+window.addEventListener("DOMContentLoaded", async () => {
+  await listen("sys-info", (event) => {
+    updateUI(event.payload);
+  });
+
+  document.getElementById("pause-btn").addEventListener("click", async () => {
+    const message = await invoke("switch_pause");
+    showNotification(message);
+  });
 });
