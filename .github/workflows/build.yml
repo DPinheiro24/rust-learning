@@ -79,4 +79,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: system-monitor-linux
-          path: sysinfo-proj/system-monitor/src-tauri/target/release/bundle/deb/*.deb
+          path: |
+            sysinfo-proj/system-monitor/src-tauri/target/release/bundle/deb/*.deb
+            sysinfo-proj/system-monitor/src-tauri/target/release/bundle/rpm/*.rpm
+            sysinfo-proj/system-monitor/src-tauri/target/release/bundle/appimage/*.AppImage
