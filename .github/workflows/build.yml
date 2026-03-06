@@ -35,6 +35,8 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: sysinfo-proj/system-monitor
 
       - name: Upload installer
         uses: actions/upload-artifact@v4
