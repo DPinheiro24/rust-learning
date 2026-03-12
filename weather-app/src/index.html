@@ -2,38 +2,520 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="stylesheet" href="styles.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tauri App</title>
+    <title>Weather</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
     <script type="module" src="/main.js" defer></script>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --day-from: #f7c56a;
+        --day-to: #e88c3b;
+        --night-from: #1a1f4e;
+        --night-to: #0d1030;
+        --glass-day: rgba(255, 255, 255, 0.22);
+        --glass-night: rgba(255, 255, 255, 0.08);
+        --text-day: #2c1a00;
+        --text-night: #e8eaff;
+        --accent-day: #c45e00;
+        --accent-night: #9ba8ff;
+        --border-day: rgba(255,255,255,0.5);
+        --border-night: rgba(255,255,255,0.15);
+        --transition: 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      html, body {
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+      }
+
+      body {
+        font-family: 'DM Sans', sans-serif;
+        background: linear-gradient(to top, var(--night-to), var(--night-from));
+        color: var(--text-night);
+        transition: background var(--transition), color var(--transition);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+      }
+
+      body.is-day {
+        background: linear-gradient(to top, var(--day-to), var(--day-from));
+        color: var(--text-day);
+      }
+
+      /* Atmospheric noise overlay */
+      body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+        pointer-events: none;
+        z-index: 0;
+        opacity: 0.35;
+      }
+
+      /* Soft glow blob */
+      body::after {
+        content: '';
+        position: fixed;
+        width: 600px;
+        height: 600px;
+        border-radius: 50%;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+        pointer-events: none;
+        z-index: 0;
+        transition: background var(--transition);
+      }
+
+      body.is-day::after {
+        background: radial-gradient(circle, rgba(255,220,120,0.2) 0%, transparent 70%);
+      }
+
+      #app {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        max-width: 420px;
+        padding: 24px 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0;
+      }
+
+      /* ── Search area ── */
+      .search-wrap {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 32px;
+      }
+
+      .app-title {
+        font-family: 'Playfair Display', serif;
+        font-size: 13px;
+        letter-spacing: 0.25em;
+        text-transform: uppercase;
+        opacity: 0.55;
+        transition: color var(--transition);
+      }
+
+      .search-row {
+        display: flex;
+        width: 100%;
+        gap: 8px;
+        background: var(--glass-night);
+        border: 1px solid var(--border-night);
+        border-radius: 999px;
+        padding: 6px 6px 6px 20px;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        transition: background var(--transition), border-color var(--transition), box-shadow 0.2s;
+      }
+
+      body.is-day .search-row {
+        background: var(--glass-day);
+        border-color: var(--border-day);
+      }
+
+      .search-row:focus-within {
+        box-shadow: 0 0 0 2px rgba(255,255,255,0.3);
+      }
+
+      #place-input {
+        flex: 1;
+        background: none;
+        border: none;
+        outline: none;
+        font-family: 'DM Sans', sans-serif;
+        font-size: 15px;
+        font-weight: 400;
+        color: inherit;
+        min-width: 0;
+      }
+
+      #place-input::placeholder {
+        opacity: 0.4;
+      }
+
+      .search-btn {
+        background: rgba(255,255,255,0.2);
+        border: none;
+        border-radius: 999px;
+        width: 38px;
+        height: 38px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: background 0.2s, transform 0.15s;
+        color: inherit;
+      }
+
+      body.is-day .search-btn {
+        background: rgba(0,0,0,0.1);
+      }
+
+      .search-btn:hover { background: rgba(255,255,255,0.3); transform: scale(1.05); }
+      body.is-day .search-btn:hover { background: rgba(0,0,0,0.18); }
+      .search-btn:active { transform: scale(0.96); }
+
+      .search-btn svg { width: 16px; height: 16px; }
+
+      /* ── Empty state ── */
+      #empty-state {
+        width: 100%;
+        height: 220px;
+        background: var(--glass-night);
+        border: 1px solid var(--border-night);
+        border-radius: 24px;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        opacity: 0.6;
+        transition: background var(--transition), border-color var(--transition);
+      }
+
+      body.is-day #empty-state {
+        background: var(--glass-day);
+        border-color: var(--border-day);
+      }
+
+      .empty-icon {
+        font-size: 36px;
+        opacity: 0.5;
+      }
+
+      .empty-hint {
+        font-size: 13px;
+        opacity: 0.55;
+        letter-spacing: 0.05em;
+      }
+
+      /* ── Weather card ── */
+      #weather-card {
+        width: 100%;
+        display: none;
+        flex-direction: column;
+        gap: 0;
+        opacity: 0;
+        transform: translateY(12px);
+        transition: opacity 0.5s ease, transform 0.5s ease;
+      }
+
+      #weather-card.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .card-main {
+        background: var(--glass-night);
+        border: 1px solid var(--border-night);
+        border-radius: 24px 24px 0 0;
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        padding: 32px 28px 28px;
+        transition: background var(--transition), border-color var(--transition);
+      }
+
+      body.is-day .card-main {
+        background: var(--glass-day);
+        border-color: var(--border-day);
+      }
+
+      .card-location {
+        font-family: 'Playfair Display', serif;
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin-bottom: 4px;
+      }
+
+      .card-date {
+        font-size: 12px;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        opacity: 0.5;
+        margin-bottom: 24px;
+      }
+
+      .card-temp-block {
+        display: flex;
+        align-items: flex-start;
+        gap: 0;
+        margin-bottom: 20px;
+      }
+
+      .card-temp {
+        font-family: 'Playfair Display', serif;
+        font-size: 88px;
+        font-weight: 700;
+        line-height: 1;
+        letter-spacing: -0.04em;
+      }
+
+      .card-temp-unit {
+        font-family: 'Playfair Display', serif;
+        font-size: 28px;
+        margin-top: 10px;
+        opacity: 0.6;
+      }
+
+      .card-range {
+        margin-left: auto;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 4px;
+        padding-top: 14px;
+      }
+
+      .card-range-item {
+        font-size: 12px;
+        opacity: 0.6;
+        letter-spacing: 0.05em;
+        display: flex;
+        align-items: center;
+        gap: 3px;
+      }
+
+      .card-range-item svg { width: 11px; height: 11px; flex-shrink: 0; }
+
+      .card-range-item span {
+        font-weight: 500;
+        opacity: 1;
+      }
+
+      .card-sun {
+        display: flex;
+        gap: 20px;
+        padding-top: 16px;
+        border-top: 1px solid rgba(255,255,255,0.12);
+      }
+
+      body.is-day .card-sun {
+        border-top-color: rgba(0,0,0,0.08);
+      }
+
+      .sun-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        opacity: 0.65;
+      }
+
+      .sun-icon { display: flex; align-items: center; }
+      .sun-icon svg { width: 14px; height: 14px; }
+      .empty-icon svg { width: 40px; height: 40px; opacity: 0.5; }
+
+      /* ── Day nav ── */
+      .card-nav {
+        background: rgba(0,0,0,0.15);
+        border: 1px solid var(--border-night);
+        border-top: none;
+        border-radius: 0 0 24px 24px;
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        display: flex;
+        align-items: center;
+        padding: 12px 20px;
+        gap: 8px;
+        transition: border-color var(--transition);
+        overflow: hidden;
+      }
+
+      body.is-day .card-nav {
+        background: rgba(255,255,255,0.15);
+        border-color: var(--border-day);
+      }
+
+      .nav-arrow {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: inherit;
+        opacity: 0.5;
+        padding: 4px 6px;
+        border-radius: 8px;
+        transition: opacity 0.2s, background 0.2s, transform 0.15s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .nav-arrow:hover:not(:disabled) { opacity: 1; background: rgba(255,255,255,0.1); }
+      .nav-arrow:active:not(:disabled) { transform: scale(0.9); }
+      .nav-arrow:disabled { opacity: 0.2; cursor: not-allowed; }
+      .nav-arrow svg { width: 16px; height: 16px; }
+
+      .nav-days {
+        flex: 1;
+        display: flex;
+        gap: 4px;
+        overflow: hidden;
+      }
+
+      .nav-day-pill {
+        flex: 1;
+        text-align: center;
+        font-size: 10px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        opacity: 0.35;
+        padding: 4px 2px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: opacity 0.2s, background 0.2s;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        user-select: none;
+      }
+
+      .nav-day-pill:hover { opacity: 0.65; }
+
+      .nav-day-pill.active {
+        opacity: 1;
+        background: rgba(255,255,255,0.12);
+        font-weight: 500;
+      }
+
+      body.is-day .nav-day-pill.active {
+        background: rgba(0,0,0,0.08);
+      }
+
+      /* ── Loading/error ── */
+      .status-msg {
+        font-size: 13px;
+        opacity: 0.5;
+        letter-spacing: 0.05em;
+        min-height: 20px;
+        margin-top: 14px;
+        text-align: center;
+        transition: opacity 0.3s;
+      }
+
+      /* loading spinner dot anim */
+      .loading-dots::after {
+        content: '';
+        animation: dots 1.2s steps(4, end) infinite;
+      }
+
+      @keyframes dots {
+        0%   { content: ''; }
+        25%  { content: '.'; }
+        50%  { content: '..'; }
+        75%  { content: '...'; }
+      }
+
+      /* slide transition for card content */
+      .slide-enter { animation: slideIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+      .slide-exit  { animation: slideOut 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+
+      @keyframes slideIn  { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: translateX(0); } }
+      @keyframes slideOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(-18px); } }
+    </style>
   </head>
 
   <body>
-    <main class="container">
-      <h1>Welcome to Tauri</h1>
-
-      <div class="row">
-        <a href="https://tauri.app" target="_blank">
-          <img src="/assets/tauri.svg" class="logo tauri" alt="Tauri logo" />
-        </a>
-        <a
-          href="https://developer.mozilla.org/en-US/docs/Web/JavaScript"
-          target="_blank"
-        >
-          <img
-            src="/assets/javascript.svg"
-            class="logo vanilla"
-            alt="JavaScript logo"
-          />
-        </a>
+    <div id="app">
+      <div class="search-wrap">
+        <div class="app-title">Weather</div>
+        <form id="weather-form">
+          <div class="search-row">
+            <input id="place-input" placeholder="Search a city…" autocomplete="off" />
+            <button class="search-btn" type="submit" aria-label="Search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+            </button>
+          </div>
+        </form>
       </div>
-      <p>Click on the Tauri logo to learn more about the framework</p>
 
-      <form class="row" id="greet-form">
-        <input id="greet-input" placeholder="Enter a name..." />
-        <button type="submit">Greet</button>
-      </form>
-      <p id="greet-msg"></p>
-    </main>
+      <div id="empty-state">
+        <div class="empty-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a7 7 0 0 1 7 7c0 5-7 13-7 13S5 14 5 9a7 7 0 0 1 7-7z"/><circle cx="12" cy="9" r="2.5"/>
+          </svg>
+        </div>
+        <div class="empty-hint">Enter a city to see the forecast</div>
+      </div>
+
+      <div id="weather-card">
+        <div class="card-main">
+          <div class="card-location" id="card-location">—</div>
+          <div class="card-date" id="card-date">—</div>
+          <div class="card-temp-block">
+            <div class="card-temp" id="card-temp">—</div>
+            <div class="card-temp-unit">°C</div>
+            <div class="card-range">
+              <div class="card-range-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+                <span id="card-max">—</span>°
+              </div>
+              <div class="card-range-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+                <span id="card-min">—</span>°
+              </div>
+            </div>
+          </div>
+          <div class="card-sun">
+            <div class="sun-item">
+              <span class="sun-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2v2M4.22 4.22l1.42 1.42M2 12h2M4.22 19.78l1.42-1.42M12 20v2M17.36 17.36l1.42 1.42M20 12h2M17.36 6.64l1.42-1.42"/>
+                  <path d="M5 17H3a9 9 0 0 1 18 0h-2"/><line x1="3" y1="17" x2="21" y2="17"/>
+                </svg>
+              </span>
+              <span id="card-sunrise">—</span>
+            </div>
+            <div class="sun-item">
+              <span class="sun-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 17H3a9 9 0 0 1 18 0h-2"/><line x1="3" y1="17" x2="21" y2="17"/>
+                  <path d="M12 3v2M4.22 5.22l1.42 1.42M2 12h2M19.78 5.22l-1.42 1.42M22 12h-2"/>
+                  <path d="M12 7a5 5 0 1 0 5 5"/>
+                </svg>
+              </span>
+              <span id="card-sunset">—</span>
+            </div>
+          </div>
+        </div>
+        <div class="card-nav">
+          <button class="nav-arrow" id="nav-prev" disabled aria-label="Previous day">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          <div class="nav-days" id="nav-days"></div>
+          <button class="nav-arrow" id="nav-next" aria-label="Next day">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="status-msg" id="status-msg"></div>
+    </div>
   </body>
 </html>
