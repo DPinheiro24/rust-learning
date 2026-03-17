@@ -239,13 +239,39 @@
         border-color: var(--border-day);
       }
 
+      .card-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 4px;
+      }
+
       .card-location {
         font-family: 'Playfair Display', serif;
         font-size: 22px;
         font-weight: 700;
         letter-spacing: -0.02em;
-        margin-bottom: 4px;
       }
+
+      .save-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: inherit;
+        opacity: 0.4;
+        padding: 2px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        transition: opacity 0.2s, transform 0.15s;
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
+
+      .save-btn:hover { opacity: 0.8; }
+      .save-btn:active { transform: scale(0.9); }
+      .save-btn.saved { opacity: 1; }
+      .save-btn svg { width: 18px; height: 18px; }
 
       .card-date {
         font-size: 12px;
@@ -462,7 +488,14 @@
 
       <div id="weather-card">
         <div class="card-main">
-          <div class="card-location" id="card-location">—</div>
+          <div class="card-header">
+            <div class="card-location" id="card-location">—</div>
+            <button class="save-btn" id="save-btn" aria-label="Save location" title="Save location">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+              </svg>
+            </button>
+          </div>
           <div class="card-date" id="card-date">—</div>
           <div class="card-temp-block">
             <div class="card-temp" id="card-temp">—</div>

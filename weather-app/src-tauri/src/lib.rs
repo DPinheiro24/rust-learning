@@ -1,13 +1,19 @@
 use serde::{Deserialize, Serialize};
+use std::{fmt::write, fs};
 
 #[derive(Serialize, Deserialize)]
+struct Preferences {
+    city: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 struct CurrentWeather {
     time: String,
     temperature_2m: f32,
     is_day: i32
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 struct DailyWeather {
     time: Vec<String>,
     temperature_2m_max: Vec<f32>,
@@ -25,7 +31,7 @@ struct DayForecast {
     sunset: String
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 struct DataWeather {
     current: CurrentWeather,
     daily: DailyWeather
@@ -88,6 +94,8 @@ async fn fetch_weather(lat: String, longi: String) -> Result<WeatherReply, Strin
 
     let text: DataWeather = response.json().await.map_err(|e| format!("{e:?}"))?;
 
+    println!("{:?} of lat {:?} and longi {:?}", text, lat, longi);
+
     let mut reply = Vec::new();
 
     for (i, date) in text.daily.time.iter().enumerate() {
@@ -106,11 +114,31 @@ async fn fetch_weather(lat: String, longi: String) -> Result<WeatherReply, Strin
     })
 }
 
+#[tauri::command]
+fn save_preferences(prefs: Preferences) -> Result<(), String>{
+    let json = serde_json::to_string(&prefs).unwrap();
+    fs::write("preferences.json", json)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn load_preferences() -> Preferences {
+    match fs::read_to_string("preferences.json") {
+        Ok(json) => serde_json::from_str(&json).unwrap_or(Preferences { city: None }),
+        Err(_) => Preferences { city: None },
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![fetch_weather, fetch_place])
+        .invoke_handler(tauri::generate_handler![
+            fetch_weather, 
+            fetch_place, 
+            save_preferences, 
+            load_preferences
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

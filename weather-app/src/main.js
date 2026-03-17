@@ -15,6 +15,7 @@ const statusMsg  = document.querySelector('#status-msg');
 const navPrev    = document.querySelector('#nav-prev');
 const navNext    = document.querySelector('#nav-next');
 const navDays    = document.querySelector('#nav-days');
+const saveBtn    = document.querySelector('#save-btn');
 
 function formatTime(isoStr) {
   // "2026-03-12T06:09" → "06:09"
@@ -121,6 +122,8 @@ function showWeather(data, place) {
   weatherData = data;
   currentIndex = 0;
   currentPlace = place;
+  saveBtn.classList.remove('saved');
+  saveBtn.querySelector('svg').setAttribute('fill', 'none');
 
   buildNavPills();
   renderDay(0, false);
@@ -145,6 +148,40 @@ navNext.addEventListener('click', () => {
     renderDay(currentIndex, true);
   }
 });
+
+saveBtn.addEventListener('click', async () => {
+  if (!currentPlace) return;
+  try {
+    await invoke('save_preferences', { prefs: { city: currentPlace } });
+    saveBtn.classList.add('saved');
+    saveBtn.querySelector('svg').setAttribute('fill', 'currentColor');
+  } catch (err) {
+    statusMsg.textContent = 'Error saving: ' + err;
+  }
+});
+
+async function loadSavedPlace() {
+  try {
+    const prefs = await invoke('load_preferences');
+    if (prefs.city) {
+      placeInput.value = prefs.city;
+      statusMsg.classList.add('loading-dots');
+      statusMsg.textContent = 'Fetching weather';
+      const data = await invoke('fetch_place', { place: prefs.city });
+      statusMsg.classList.remove('loading-dots');
+      statusMsg.textContent = '';
+      showWeather(data, prefs.city);
+      saveBtn.classList.add('saved');
+      saveBtn.querySelector('svg').setAttribute('fill', 'currentColor');
+    }
+  } catch (_) {
+    // No saved preferences or fetch failed — start with empty state
+    statusMsg.classList.remove('loading-dots');
+    statusMsg.textContent = '';
+  }
+}
+
+loadSavedPlace();
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
