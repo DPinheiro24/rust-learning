@@ -94,8 +94,6 @@ async fn fetch_weather(lat: String, longi: String) -> Result<WeatherReply, Strin
 
     let text: DataWeather = response.json().await.map_err(|e| format!("{e:?}"))?;
 
-    println!("{:?} of lat {:?} and longi {:?}", text, lat, longi);
-
     let mut reply = Vec::new();
 
     for (i, date) in text.daily.time.iter().enumerate() {
