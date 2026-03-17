@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::{fmt::write, fs};
+use std::{fs};
 
 #[derive(Serialize, Deserialize)]
 struct Preferences {
